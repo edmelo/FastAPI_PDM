@@ -1,60 +1,138 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+from datetime import datetime
+
+class CommunityResourceCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    type: str
+    address: Optional[str] = None
+    contact: Optional[str] = None
+    availability: Optional[str] = None
+
+class CommunityResource(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    type: str
+    address: Optional[str] = None
+    contact: Optional[str] = None
+    availability: Optional[str] = None
+    createdAt: str = datetime.now().isoformat()
 
 class ForumPost(BaseModel):
     id: int
-    titulo: str
-    conteudo: str
+    title: str
+    content: str
+    author: str
+    created_at: str = datetime.now().isoformat()
 
 class Comment(BaseModel):
     id: int
     post_id: int
-    texto: str
-
-class ChatRoom(BaseModel):
-    id: int
-    nome: str
-
-class ChatMessage(BaseModel):
-    id: int
-    room_id: int
-    texto: str
+    text: str
+    author: str
+    created_at: str = datetime.now().isoformat()
 
 router = APIRouter()
 
+# Dados de exemplo para recursos da comunidade
+sample_community_resources = [
+    CommunityResource(
+        id=1,
+        name="Grupo de Apoio ao Autismo",
+        description="Grupo de famílias e cuidadores para apoio mútuo",
+        type="grupo_apoio",
+        address="Centro Comunitário - Rua das Palmeiras, 100",
+        contact="grupoautismo@email.com",
+        availability="Terças-feiras às 19h"
+    ),
+    CommunityResource(
+        id=2,
+        name="Clube de Ciclismo Saudável",
+        description="Grupo para prática de ciclismo e atividades ao ar livre",
+        type="atividade_fisica",
+        address="Parque Municipal",
+        contact="(11) 9999-1234",
+        availability="Sábados às 8h e Domingos às 16h"
+    ),
+    CommunityResource(
+        id=3,
+        name="Horta Comunitária",
+        description="Espaço para cultivo coletivo de alimentos orgânicos",
+        type="agricultura_urbana",
+        address="Rua Verde, 500 - Bairro Jardim",
+        contact="horta.comunidade@email.com",
+        availability="Diariamente das 6h às 18h"
+    )
+]
+
+# Dados de exemplo para fórum
+sample_forum_posts = [
+    ForumPost(
+        id=1,
+        title="Dicas para famílias com autismo",
+        content="Compartilho aqui algumas estratégias que têm funcionado bem em casa...",
+        author="Maria Santos"
+    ),
+    ForumPost(
+        id=2,
+        title="Melhores rotas de ciclismo na cidade",
+        content="Pessoal, vamos compartilhar as melhores rotas para pedalar com segurança...",
+        author="João Pedalada"
+    ),
+    ForumPost(
+        id=3,
+        title="Receitas saudáveis da horta",
+        content="Que tal trocarmos receitas usando os vegetais da nossa horta comunitária?",
+        author="Ana Verde"
+    )
+]
+
+@router.get("/", response_model=List[CommunityResource])
+def listar_recursos_comunidade():
+    return sample_community_resources
+
+@router.get("/{resource_id}", response_model=CommunityResource)
+def obter_recurso_comunidade(resource_id: int):
+    for resource in sample_community_resources:
+        if resource.id == resource_id:
+            return resource
+    return CommunityResource(
+        id=resource_id,
+        name="Recurso não encontrado",
+        type="unknown",
+        description="Este recurso não existe"
+    )
+
+@router.post("/", response_model=CommunityResource)
+def criar_recurso_comunidade(resource_data: CommunityResourceCreate):
+    new_id = max([r.id for r in sample_community_resources]) + 1 if sample_community_resources else 1
+    new_resource = CommunityResource(
+        id=new_id,
+        name=resource_data.name,
+        description=resource_data.description,
+        type=resource_data.type,
+        address=resource_data.address,
+        contact=resource_data.contact,
+        availability=resource_data.availability
+    )
+    sample_community_resources.append(new_resource)
+    return new_resource
+
 @router.get("/forums", response_model=List[ForumPost])
 def listar_foruns():
-    return [
-        ForumPost(id=1, titulo="Grupo Autismo", conteudo="Discussão sobre autismo"),
-        ForumPost(id=2, titulo="Ciclistas", conteudo="Rotas e dicas")
-    ]
+    return sample_forum_posts
 
 @router.get("/forums/{post_id}", response_model=ForumPost)
-def detalhes_forum(post_id: int):
-    return ForumPost(id=post_id, titulo="Exemplo", conteudo="Conteúdo exemplo")
-
-@router.post("/forums")
-def criar_forum():
-    return {"message": "Post criado"}
-
-@router.get("/forums/{post_id}/comments", response_model=List[Comment])
-def listar_comentarios(post_id: int):
-    return [Comment(id=1, post_id=post_id, texto="Comentário exemplo")]
-
-@router.post("/comments")
-def adicionar_comentario():
-    return {"message": "Comentário adicionado"}
-
-@router.get("/chat/rooms", response_model=List[ChatRoom])
-def listar_salas():
-    return [ChatRoom(id=1, nome="Sala 1"), ChatRoom(id=2, nome="Sala 2")]
-
-@router.get("/chat/rooms/{room_id}/messages", response_model=List[ChatMessage])
-def listar_mensagens(room_id: int):
-    return [ChatMessage(id=1, room_id=room_id, texto="Mensagem exemplo")]
-
-@router.post("/chat/messages")
-def enviar_mensagem():
-    return {"message": "Mensagem enviada"}
-
+def obter_post_forum(post_id: int):
+    for post in sample_forum_posts:
+        if post.id == post_id:
+            return post
+    return ForumPost(
+        id=post_id,
+        title="Post não encontrado",
+        content="Este post não existe",
+        author="Sistema"
+    )
